@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bharat Political Intelligence — Map-First Indian Political Exploration</title>
+  <meta name="description" content="An interactive, fun, and map-first civic intelligence platform to explore Indian politics, elected representatives, declared affidavits, and constituency records." />
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace']
+          },
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+              900: '#312e81',
+              950: '#1e1b4b'
+            }
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+    .font-mono-num { font-family: 'JetBrains Mono', monospace; font-variant-numeric: tabular-nums; }
+    .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.35); border-radius: 3px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(148, 163, 184, 0.55); }
+    
+    .state-path {
+      transition: fill 0.25s ease, stroke 0.2s ease, stroke-width 0.2s ease, filter 0.25s ease;
+      cursor: pointer;
+    }
+    .state-path:hover {
+      stroke: #ffffff !important;
+      stroke-width: 2.4px !important;
+      filter: brightness(1.22) drop-shadow(0 0 10px rgba(99, 102, 241, 0.7));
+    }
+    .state-path.selected {
+      stroke: #38bdf8 !important;
+      stroke-width: 3.2px !important;
+      filter: brightness(1.3) drop-shadow(0 0 14px rgba(56, 189, 248, 0.9));
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col transition-colors duration-200">
+
+  <!-- TOP LEGAL & NEUTRALITY SAFEGUARD BANNER -->
+  <aside class="bg-slate-900/90 border-b border-slate-800 px-4 py-1.5 text-xs text-slate-300 flex flex-wrap items-center justify-between gap-2 z-40">
+    <div class="flex items-center gap-2 flex-wrap">
+      <span class="inline-flex items-center px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 text-[11px] font-semibold">
+        Constitutional Public Data
+      </span>
+      <span>Official Form 26 Affidavits &amp; Parliamentary Records. <strong class="text-white">An FIR or pending trial is not a conviction.</strong> Strictly neutral civic intelligence.</span>
+    </div>
+    <div class="flex items-center gap-3 font-mono-num text-[11px] text-slate-400">
+      <span>18th Lok Sabha &amp; Assembly Disclosures</span>
+      <span>•</span>
+      <span>DPDP Act Compliant</span>
+    </div>
+  </aside>
+
+  <!-- MAIN APP HEADER -->
+  <header class="bg-slate-900/95 backdrop-blur-md border-b border-slate-800 sticky top-0 z-30 shadow-lg">
+    <div class="max-w-[1600px] mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-4">
+      
+      <!-- Brand Logo & Tagline -->
+      <button id="brandHomeBtn" type="button" class="flex items-center gap-3 text-left group focus:outline-none">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 via-indigo-600 to-indigo-800 flex items-center justify-center text-white font-black text-base shadow-lg shadow-indigo-500/25 group-hover:scale-105 transition-transform">
+          BPI
+        </div>
+        <div>
+          <div class="font-extrabold text-lg tracking-tight text-white flex items-center gap-2">
+            Bharat Political Intelligence
+            <span class="text-[10px] font-mono-num uppercase px-2 py-0.5 rounded-full bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">Civic Beta</span>
+          </div>
+          <p class="text-xs text-slate-400">Interactive Map-First Discovery of Indian Politics &amp; Representatives</p>
+        </div>
+      </button>
+
+      <!-- Global Search Autocomplete Bar -->
+      <div class="relative flex-1 max-w-xl min-w-[280px]">
+        <div class="relative flex items-center">
+          <svg class="w-4 h-4 text-slate-400 absolute left-3.5 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+          </svg>
+          <input
+            id="globalSearchInput"
+            type="text"
+            placeholder="Search State, District, Constituency, Politician, Party..."
+            class="w-full pl-10 pr-20 py-2.5 text-xs rounded-xl bg-slate-950/80 border border-slate-700 text-slate-100 placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition"
+          />
+          <button id="clearGlobalSearchBtn" type="button" class="hidden absolute right-2.5 text-[11px] px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 transition">Clear</button>
+        </div>
+        <!-- Live Autocomplete Dropdown -->
+        <div id="globalSearchDropdown" class="hidden absolute left-0 right-0 mt-2 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl max-h-96 overflow-y-auto z-50 divide-y divide-slate-800 custom-scrollbar"></div>
+      </div>
+
+      <!-- Action Buttons: Who Represents Me? + Theme Toggle -->
+      <div class="flex items-center gap-2.5">
+        <button id="heroWhoRepresentsBtn" type="button" class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-white text-xs font-bold shadow-md shadow-indigo-600/25 transition-all">
+          <span>✨</span>
+          <span>Who Represents Me?</span>
+        </button>
+        <button id="themeToggleBtn" type="button" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs transition flex items-center justify-center" title="Toggle Light/Dark Theme" aria-label="Toggle Theme">
+          <span id="themeToggleIcon">🌙</span>
+        </button>
+      </div>
+
+    </div>
+
+    <!-- 5 STREAMLINED TOP NAVIGATION TABS -->
+    <nav class="max-w-[1600px] mx-auto px-4 border-t border-slate-800/80 overflow-x-auto custom-scrollbar" aria-label="Main Navigation">
+      <div id="mainNavTabs" class="flex items-center gap-1 py-1.5 min-w-max">
+        <button type="button" data-nav="explore" class="nav-tab-btn px-4 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 text-white shadow-sm">🗺️ Explore India</button>
+        <button type="button" data-nav="politicians" class="nav-tab-btn px-4 py-1.5 rounded-lg text-xs font-semibold text-slate-300 hover:bg-slate-800 transition">👥 Politicians</button>
+        <button type="button" data-nav="elections" class="nav-tab-btn px-4 py-1.5 rounded-lg text-xs font-semibold text-slate-300 hover:bg-slate-800 transition">📊 Elections</button>
+        <button type="button" data-nav="discover" class="nav-tab-btn px-4 py-1.5 rounded-lg text-xs font-semibold text-slate-300 hover:bg-slate-800 transition">💡 Discover</button>
+        <button type="button" data-nav="about" class="nav-tab-btn px-4 py-1.5 rounded-lg text-xs font-semibold text-slate-300 hover:bg-slate-800 transition">ℹ️ About &amp; Sources</button>
+      </div>
+    </nav>
+  </header>
+
+  <!-- GEOGRAPHIC DRILL-DOWN BREADCRUMB BAR -->
+  <div class="bg-slate-900/60 border-b border-slate-800/80 px-4 py-2">
+    <div class="max-w-[1600px] mx-auto flex flex-wrap items-center justify-between gap-3 text-xs">
+      <div class="flex items-center gap-2 flex-wrap">
+        <span class="text-slate-400 font-medium">Drill-Down:</span>
+        <div id="geoBreadcrumbContainer" class="flex items-center gap-1.5 flex-wrap font-semibold"></div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="geoStepBackBtn" type="button" class="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs border border-slate-700 disabled:opacity-40 transition" disabled>
+          ← Back
+        </button>
+        <button id="geoResetIndiaBtn" type="button" class="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs border border-slate-700 transition">
+          ↺ Reset to All-India
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN WORKSPACE CONTAINER -->
+  <main class="max-w-[1600px] w-full mx-auto px-4 py-5 flex-1 flex flex-col gap-6">
+
+    <!-- HERO SECTION: MAKE INDIA THE HERO -->
+    <section id="heroSection" class="relative overflow-hidden rounded-3xl bg-gradient-to-b from-indigo-950/40 via-slate-900/60 to-slate-900 border border-slate-800 p-6 md:p-8">
+      <div class="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+        <div class="max-w-2xl space-y-3">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-medium">
+            <span>Interactive Civic Discovery</span>
+            <span>•</span>
+            <span>28 States &amp; 8 UTs</span>
+          </div>
+          <h1 class="text-2xl md:text-4xl font-extrabold text-white tracking-tight leading-tight">
+            India Is More Than Just Numbers.<br />
+            <span class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-sky-300 to-teal-300">
+              Explore Who Represents You.
+            </span>
+          </h1>
+          <p class="text-sm md:text-base text-slate-300 leading-relaxed">
+            Discover your elected MPs and MLAs, self-sworn election affidavits, declared assets, criminal case disclosures, historical representation, and public development funding across every constituency in India.
+          </p>
+          <div class="flex flex-wrap items-center gap-3 pt-2">
+            <button id="heroLaunchWizardBtn" type="button" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/30 transition">
+              ✨ Find My Representative (3 Clicks)
+            </button>
+            <button id="heroCompareJumpBtn" type="button" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs border border-slate-700 transition">
+              ⚖️ Politician Comparison Arena
+            </button>
+            <button id="heroQuickHaryanaBtn" type="button" class="px-3.5 py-2 rounded-xl bg-teal-500/10 hover:bg-teal-500/20 text-teal-300 font-semibold text-xs border border-teal-500/30 transition">
+              Explore Haryana Demo →
+            </button>
+          </div>
+        </div>
+
+        <!-- 5 Key National Statistics Cards -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 gap-3 w-full lg:w-auto font-mono-num">
+          <div class="p-3.5 rounded-2xl bg-slate-950/70 border border-slate-800/80">
+            <span class="text-[10px] text-slate-400 uppercase tracking-wider block font-sans">18th Lok Sabha</span>
+            <span class="text-xl font-extrabold text-white">543 MPs</span>
+            <span class="text-[11px] text-indigo-400 block mt-0.5">41 Parties Represented</span>
+          </div>
+          <div class="p-3.5 rounded-2xl bg-slate-950/70 border border-slate-800/80">
+            <span class="text-[10px] text-slate-400 uppercase tracking-wider block font-sans">Average Declared Assets</span>
+            <span class="text-xl font-extrabold text-amber-400">₹46.34 Cr</span>
+            <span class="text-[11px] text-slate-400 block mt-0.5">92.8% Crorepatis (504)</span>
+          </div>
+          <div class="p-3.5 rounded-2xl bg-slate-950/70 border border-slate-800/80">
+            <span class="text-[10px] text-slate-400 uppercase tracking-wider block font-sans">Declared Criminal Cases</span>
+            <span class="text-xl font-extrabold text-rose-400">46.2%</span>
+            <span class="text-[11px] text-slate-400 block mt-0.5">251 MPs (31.3% Serious)</span>
+          </div>
+          <div class="p-3.5 rounded-2xl bg-slate-950/70 border border-slate-800/80">
+            <span class="text-[10px] text-slate-400 uppercase tracking-wider block font-sans">Women Representation</span>
+            <span class="text-xl font-extrabold text-emerald-400">13.6%</span>
+            <span class="text-[11px] text-slate-400 block mt-0.5">74 MPs Elected (2024)</span>
+          </div>
+          <div class="col-span-2 p-3.5 rounded-2xl bg-slate-950/70 border border-slate-800/80 flex items-center justify-between">
+            <div>
+              <span class="text-[10px] text-slate-400 uppercase tracking-wider block font-sans">Public Development (MPLADS)</span>
+              <span class="text-sm font-bold text-teal-300">₹2,408.7 Cr Completed Works</span>
+            </div>
+            <span class="px-2 py-1 rounded-lg bg-teal-500/10 text-teal-300 text-[11px] border border-teal-500/30">44,028 Works</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- EXPLORE VIEWPORT: CENTRAL HERO MAP STAGE -->
+    <section id="exploreViewport" class="space-y-6">
+
+      <!-- MAP MODES SWITCHER BAR -->
+      <div class="p-3.5 rounded-2xl bg-slate-900 border border-slate-800 flex flex-wrap items-center justify-between gap-3 shadow-md">
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="text-xs font-bold text-white uppercase tracking-wider">Map Modes:</span>
+          <div class="inline-flex rounded-xl bg-slate-950 p-1 border border-slate-800 text-xs flex-wrap">
+            <button type="button" data-map-mode="political" class="map-mode-btn px-3 py-1.5 rounded-lg font-bold bg-indigo-600 text-white shadow-sm transition">🗳️ Political Map</button>
+            <button type="button" data-map-mode="wealth" class="map-mode-btn px-3 py-1.5 rounded-lg font-medium text-slate-300 hover:text-white transition">💰 Wealth Map</button>
+            <button type="button" data-map-mode="criminal" class="map-mode-btn px-3 py-1.5 rounded-lg font-medium text-slate-300 hover:text-white transition">⚖️ Criminal Cases Map</button>
+            <button type="button" data-map-mode="election" class="map-mode-btn px-3 py-1.5 rounded-lg font-medium text-slate-300 hover:text-white transition">📈 Election Map</button>
+            <button type="button" data-map-mode="development" class="map-mode-btn px-3 py-1.5 rounded-lg font-medium text-slate-300 hover:text-white transition">🏗️ Development Map</button>
+          </div>
+        </div>
+        <div id="mapModeExplanation" class="text-xs text-slate-300 font-medium flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-indigo-500 inline-block animate-pulse"></span>
+          <span id="mapModeExplanationText">Political Map: Ruling Coalition / Party Representation across 28 States &amp; 8 UTs.</span>
+        </div>
+      </div>
+
+      <!-- MAIN INTERACTIVE MAP + STATE QUICK ROSTER (GRID) -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        
+        <!-- Left 8 Cols: Large Authentic Scalable Vector India Map -->
+        <div class="lg:col-span-8 rounded-3xl bg-slate-900 border border-slate-800 p-4 flex flex-col justify-between relative shadow-xl overflow-hidden min-h-[580px]">
+          
+          <div class="flex items-center justify-between gap-3 mb-2 z-10">
+            <div>
+              <h2 id="mapViewHeaderTitle" class="text-base font-bold text-white">All-India Geographic Boundary Map</h2>
+              <p id="mapViewHeaderSubtitle" class="text-xs text-slate-400">Hover over any State or Union Territory to inspect civic metrics; click to zoom into State Exploration.</p>
+            </div>
+            <span id="activeMapLevelBadge" class="text-xs font-mono-num px-2.5 py-1 rounded-lg bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">
+              Level 1: India
+            </span>
+          </div>
+
+          <!-- Scalable SVG Map Canvas -->
+          <div class="relative w-full flex-1 flex items-center justify-center py-2 select-none min-h-[440px]">
+            <svg id="indiaInteractiveSvg" viewBox="0 0 800 920" class="w-full h-auto max-h-[540px] max-w-full drop-shadow-2xl"></svg>
+            
+            <!-- Hover Floating Tooltip -->
+            <div id="mapHoverTooltip" class="hidden pointer-events-none absolute bg-slate-900/95 border border-slate-700/80 rounded-2xl p-3 text-xs shadow-2xl z-30 max-w-[280px] backdrop-blur-md transition-all"></div>
+          </div>
+
+          <!-- Dynamic Mode Legend Bar -->
+          <div id="mapModeLegend" class="mt-2 pt-3 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-300 font-medium"></div>
+        </div>
+
+        <!-- Right 4 Cols: Dynamic Context Panel (Level 1: Quick State Roster / Level 2: State Exploration / Level 3: District / Level 4: Constituency) -->
+        <div id="geoContextSidePanel" class="lg:col-span-4 rounded-3xl bg-slate-900 border border-slate-800 p-5 flex flex-col justify-between gap-4 shadow-xl overflow-hidden max-h-[660px]"></div>
+
+      </div>
+
+    </section>
+
+    <!-- DYNAMIC SECONDARY VIEWPORTS (SWITCHED VIA TOP NAV) -->
+    <section id="politiciansViewport" class="hidden space-y-6"></section>
+    <section id="electionsViewport" class="hidden space-y-6"></section>
+    <section id="discoverViewport" class="hidden space-y-6"></section>
+    <section id="aboutViewport" class="hidden space-y-6"></section>
+
+  </main>
+
+  <!-- POLITICIAN FULL DOSSIER MODAL -->
+  <div id="politicianModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 md:p-6 overflow-y-auto">
+    <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-4xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden my-auto">
+      
+      <!-- Modal Header -->
+      <div class="px-6 py-4 bg-slate-950 border-b border-slate-800 flex items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-2xl bg-indigo-600/20 border border-indigo-500/40 flex items-center justify-center text-indigo-400 font-extrabold text-base" id="modalPolInitials">
+            MP
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 id="modalPolName" class="text-lg font-extrabold text-white">Politician Profile</h3>
+              <span id="modalPolStatusBadge" class="text-[10px] font-mono-num uppercase px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">Elected</span>
+            </div>
+            <p id="modalPolRoleConstituency" class="text-xs text-slate-400">Lok Sabha MP • Constituency, State</p>
+          </div>
+        </div>
+        <button id="closePoliticianModalBtn" type="button" class="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center text-sm transition">
+          ✕
+        </button>
+      </div>
+
+      <!-- Modal Tabs Switcher -->
+      <div class="px-6 border-b border-slate-800 bg-slate-950/50 flex items-center gap-2 overflow-x-auto custom-scrollbar text-xs">
+        <button type="button" data-modal-tab="overview" class="modal-tab-btn px-3 py-2.5 font-bold border-b-2 border-indigo-500 text-indigo-400">Overview</button>
+        <button type="button" data-modal-tab="wealth" class="modal-tab-btn px-3 py-2.5 font-medium text-slate-400 hover:text-slate-200">Wealth &amp; Assets</button>
+        <button type="button" data-modal-tab="legal" class="modal-tab-btn px-3 py-2.5 font-medium text-slate-400 hover:text-slate-200">Legal Records</button>
+        <button type="button" data-modal-tab="elections" class="modal-tab-btn px-3 py-2.5 font-medium text-slate-400 hover:text-slate-200">Elections</button>
+        <button type="button" data-modal-tab="performance" class="modal-tab-btn px-3 py-2.5 font-medium text-slate-400 hover:text-slate-200">Performance</button>
+        <button type="button" data-modal-tab="sources" class="modal-tab-btn px-3 py-2.5 font-medium text-slate-400 hover:text-slate-200">Sources</button>
+      </div>
+
+      <!-- Modal Content Body -->
+      <div id="modalPolBody" class="p-6 overflow-y-auto space-y-6 custom-scrollbar text-xs flex-1"></div>
+
+      <!-- Modal Footer -->
+      <div class="px-6 py-3 bg-slate-950 border-t border-slate-800 flex items-center justify-between gap-3 text-xs">
+        <div class="flex items-center gap-2">
+          <button id="modalSharePolBtn" type="button" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center gap-1.5 font-medium transition">
+            <span>🔗</span>
+            <span>Share Profile</span>
+          </button>
+          <a id="modalSourceAffidavitLink" href="#" target="_blank" rel="noopener noreferrer" class="px-3 py-1.5 rounded-xl bg-indigo-600/15 hover:bg-indigo-600/25 text-indigo-300 border border-indigo-500/30 flex items-center gap-1 font-medium transition">
+            <span>Form 26 Affidavit ↗</span>
+          </a>
+        </div>
+        <button type="button" id="modalDismissBtn" class="px-4 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 transition font-medium">Close</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 'WHO REPRESENTS ME?' MODAL WIZARD -->
+  <div id="whoRepresentsModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 md:p-6 overflow-y-auto">
+    <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-2xl w-full p-6 shadow-2xl space-y-5 my-auto">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+        <div>
+          <span class="text-[10px] font-mono-num uppercase px-2 py-0.5 rounded-full bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">Civic Discovery</span>
+          <h3 class="text-lg font-bold text-white mt-1">Who Represents Me? (3-Step Finder)</h3>
+        </div>
+        <button id="closeWhoRepresentsModalBtn" type="button" class="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center text-sm transition">
+          ✕
+        </button>
+      </div>
+
+      <div class="space-y-3.5 text-xs">
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1">Step 1: Select State or Union Territory</label>
+          <select id="wizardStateSelect" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 focus:outline-none focus:border-indigo-500"></select>
+        </div>
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1">Step 2: Select District</label>
+          <select id="wizardDistrictSelect" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 focus:outline-none focus:border-indigo-500"></select>
+        </div>
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1">Step 3: Select Constituency (Assembly / Lok Sabha)</label>
+          <select id="wizardConstituencySelect" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-200 focus:outline-none focus:border-indigo-500"></select>
+        </div>
+      </div>
+
+      <!-- Result Container -->
+      <div id="wizardResultContainer" class="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-3 text-xs hidden"></div>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION CONTAINER -->
+  <div id="toastNotification" class="hidden fixed bottom-6 right-6 z-50 bg-indigo-600 text-white px-4 py-2.5 rounded-2xl shadow-2xl text-xs font-semibold flex items-center gap-2 transform transition-all duration-300">
+    <span>✓</span>
+    <span id="toastMessage">Link copied to clipboard!</span>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="bg-slate-900 border-t border-slate-800 mt-12 py-8 px-4 text-xs text-slate-400">
+    <div class="max-w-[1600px] mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+      <div class="space-y-1 text-center md:text-left">
+        <p class="font-bold text-white">Bharat Political Intelligence — Open Public Civic Data &amp; Constitutional Accountability</p>
+        <p class="text-[11px] text-slate-400">Data sources: Election Commission of India (ECI) • Association for Democratic Reforms (ADR/MyNeta) • Digital Sansad (Lok Sabha/Rajya Sabha) • MoSPI eSAKSHI MPLADS Portal</p>
+      </div>
+      <div class="text-center md:text-right font-mono-num text-[11px]">
+        <p class="text-slate-300">Zero Subjective Politician Scores • Strictly Neutral Disclosures</p>
+        <p class="text-slate-500 mt-0.5">Delimitation Order 2008 + J&amp;K 2022 • Form 26 Affidavit Disclosures</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- APPLICATION DATA AND CORE SCRIPT -->
+  <script>
+    const INDIA_GEO_SVG = __INDIA_GEO_SVG__;
+
+    const NATIONAL_OVERVIEW = __NATIONAL_OVERVIEW__;
+
+    const STATES_AND_UTS = __STATES_AND_UTS__;
+
+    const STATE_DISTRICTS = __STATE_DISTRICTS__;
+
+    const CONSTITUENCIES = __CONSTITUENCIES__;
+
+    const POLITICIANS = __POLITICIANS__;
+
+    const POLITICAL_PARTIES = __POLITICAL_PARTIES__;
+
+    const PUBLIC_PROJECTS = __PUBLIC_PROJECTS__;
+
+    __CLIENT_JS_CODE__
+  </script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+# Python caches
+__pycache__/
+*.pyc
+
+# Local scratch build scripts
+append_generator.py
+generate_index.py
+build_app.py
+test_app.py
